@@ -1,0 +1,140 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../google-signin/google-signin.html">
+<link rel="import" href="../google-apis/google-client-api.html">
+
+<!--
+Element providing a Result Set executed against Google BigQuery
+
+##### Example
+
+    <bigquery-api
+        title="Wikipedia Top Topics"
+        query="SELECT TOP(title, 10) as title, COUNT(*) as revision_count FROM [publicdata:samples.wikipedia] WHERE wp_namespace = 0;"
+        clientId="YOUR_CLIENT_KEY"
+        projectId="YOUR_PROJECT_ID"
+    </bigquery-api>
+
+@element bigquery-api
+@blurb Element providing a Result Set executed against Google BigQuery
+@status alpha
+@url http://blackhawkwebcomponents.github.io/bigquery-api
+-->
+<polymer-element name="bigquery-api" attributes="clientId projectId query">
+    <template>
+        <style>
+            :host, span {
+                display: inline-block;
+            }
+
+            ul {
+                list-style: none;
+                padding: 0;
+            }
+
+            li {
+                font-family: Arial, sans-serif;
+                display: block;
+                list-style: none;
+                width: 300px;
+                border-radius: .2em;
+                padding: .2em;
+                margin: .2em;
+                overflow: hidden;
+            }
+
+            li a {
+                color: inherit;
+                display: block;
+                text-decoration: none;
+            }
+
+            google-signin {
+                float: right;
+            }
+        </style>
+
+        <google-api-loader id="bigquery" name="bigquery" version="v2"
+                           on-google-api-load="{{displayQueryResults}}">
+        </google-api-loader>
+        <ul id="calendars">
+            <li>
+                {{title || 'Big Query Results'}}
+                <google-signin
+                        clientId="{{clientId}}"
+                        scopes="https://www.googleapis.com/auth/bigquery"
+                        on-google-signin-success="{{signIn}}"></google-signin>
+            </li>
+
+            <template repeat="{{r in queryResults}}">
+                <li>{{r.title}}</li>
+            </template>
+        </ul>
+    </template>
+    <script>
+        Polymer('bigquery-api', {
+            ready: function () {
+                this.queryResults = [];
+            },
+            apikey: null,
+            signedIn: false,
+            /**
+             * A title to be displayed on top of the query results list.
+             * @attribute title
+             * @type string
+             */
+            title: 'Big Query Results',
+            /**
+             * A query to execute against Big Query api.
+             * @attribute query
+             * @type string
+             */
+            query: '',
+            /**
+             * Application's clientId for using Big Query API.
+             * @attribute clientId
+             * @type string
+             */
+            clientId: null,
+            /**
+             * Application's projectId for using Big Query API.
+             * @attribute projectId
+             * @type string
+             */
+            projectId: null,
+            signIn: function () {
+                this.signedIn = true;
+                this.displayQueryResults();
+            },
+            /**
+             * Displays the results of big query
+             *
+             * @method displayQueryResults
+             */
+            displayQueryResults: function () {
+
+                if (this.signedIn && this.$.bigquery.api) {
+                    var request = this.$.bigquery.api.jobs.query({
+                        'projectId': this.projectId,
+                        'timeoutMs': '30000',
+                        'query': this.query
+                    });
+                    request.execute(function (response) {
+                        console.log(JSON.stringify(response));
+                        for (var i = 0; i < response.result.rows.length; ++i) {
+                            var item = response.result.rows[i];
+                            var title = item.f[0].v;
+                            var revision_count = item.f[1].v;
+                            var r = {title: title, revision_count: revision_count};
+                            this.queryResults.push(r);
+                        }
+                        ;
+                    }.bind(this));
+
+                } else {
+                    console.log("not signedIn or bigquery null");
+                }
+            }
+        });
+    </script>
+</polymer-element>
+
