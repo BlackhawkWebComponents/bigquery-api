@@ -6,17 +6,35 @@
 
     <script src="../platform/platform.js"></script>
     <link rel="import" href="bigquery-api.html">
+    <link rel="import" href="../google-signin/google-signin.html">
 
 </head>
 <body unresolved>
 
-<p>A <code>&lt;bigquery-api&gt;</code> looks like this:</p>
-<bigquery-api title="Top Wikipedia Topics"
-                 query="SELECT TOP(title, 10) as title, COUNT(*) as revision_count FROM [publicdata:samples.wikipedia] WHERE wp_namespace = 0;"
-                 projectId="blackhawk-website"
-                 clientId="616981594512-9qhbmltja9bhuoh1rfl2mesej0qqj6b8.apps.googleusercontent.com">
-</bigquery-api>
+<template is="auto-binding">
+    <google-signin clientId="616981594512-9qhbmltja9bhuoh1rfl2mesej0qqj6b8.apps.googleusercontent.com"></google-signin>
 
+    <p>A <code>&lt;bigquery-api&gt;</code> looks like this:</p>
+    <bigquery-api title="Top Wikipedia Topics"
+                  query="SELECT TOP(title, 10) as title, COUNT(*) as revision_count FROM [publicdata:samples.wikipedia] WHERE wp_namespace = 0;"
+                  projectId="blackhawk-website"
+                  response="{{response}}">
+    </bigquery-api>
+
+    <template repeat="{{response.result.rows}}">
+        <div>{{f[0].v}} - {{f[1].v}}</div>
+    </template>
+
+    <pre>{{response | json}}</pre>
+
+</template>
+
+<script>
+    var t = document.querySelector("template");
+    t.json = function(value) {
+        return JSON.stringify(value, null, 2);
+    }
+</script>
 
 </body>
 </html>

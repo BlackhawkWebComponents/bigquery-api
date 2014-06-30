@@ -10,7 +10,6 @@ Element providing a Result Set executed against Google BigQuery
     <bigquery-api
         title="Wikipedia Top Topics"
         query="SELECT TOP(title, 10) as title, COUNT(*) as revision_count FROM [publicdata:samples.wikipedia] WHERE wp_namespace = 0;"
-        clientId="YOUR_CLIENT_KEY"
         projectId="YOUR_PROJECT_ID"
     </bigquery-api>
 
@@ -19,64 +18,27 @@ Element providing a Result Set executed against Google BigQuery
 @status alpha
 @url http://blackhawkwebcomponents.github.io/bigquery-api
 -->
-<polymer-element name="bigquery-api" attributes="clientId projectId query">
+<polymer-element name="bigquery-api" attributes="projectId query response">
     <template>
-        <style>
-            :host, span {
-                display: inline-block;
-            }
 
-            ul {
-                list-style: none;
-                padding: 0;
-            }
+        <google-signin-aware scopes="https://www.googleapis.com/auth/bigquery"
+                             on-google-signin-aware-success="{{signIn}}"
+                             on-google-signin-aware-signed-out="{{signOut}}">
 
-            li {
-                font-family: Arial, sans-serif;
-                display: block;
-                list-style: none;
-                width: 300px;
-                border-radius: .2em;
-                padding: .2em;
-                margin: .2em;
-                overflow: hidden;
-            }
-
-            li a {
-                color: inherit;
-                display: block;
-                text-decoration: none;
-            }
-
-            google-signin {
-                float: right;
-            }
-        </style>
+        </google-signin-aware>
 
         <google-api-loader id="bigquery" name="bigquery" version="v2"
-                           on-google-api-load="{{displayQueryResults}}">
+                           on-google-api-load="{{apiLoad}}">
         </google-api-loader>
-        <ul id="calendars">
-            <li>
-                {{title || 'Big Query Results'}}
-                <google-signin
-                        clientId="{{clientId}}"
-                        scopes="https://www.googleapis.com/auth/bigquery"
-                        on-google-signin-success="{{signIn}}"></google-signin>
-            </li>
 
-            <template repeat="{{r in queryResults}}">
-                <li>{{r.title}}</li>
-            </template>
-        </ul>
     </template>
     <script>
         Polymer('bigquery-api', {
             ready: function () {
-                this.queryResults = [];
+                this.response = {};
             },
-            apikey: null,
             signedIn: false,
+            apiLoaded: false,
             /**
              * A title to be displayed on top of the query results list.
              * @attribute title
@@ -84,55 +46,59 @@ Element providing a Result Set executed against Google BigQuery
              */
             title: 'Big Query Results',
             /**
+             * Setting auto will run the query any time it changes
+             * @attribute auto
+             * @type boolean
+             */
+            auto: true,
+            /**
              * A query to execute against Big Query api.
              * @attribute query
              * @type string
+             * @default null
              */
-            query: '',
-            /**
-             * Application's clientId for using Big Query API.
-             * @attribute clientId
-             * @type string
-             */
-            clientId: null,
+            query: null,
             /**
              * Application's projectId for using Big Query API.
              * @attribute projectId
              * @type string
              */
             projectId: null,
+
+            observe: {
+                'query signedIn apiLoaded': 'stateChanged'
+            },
+            apiLoad: function () {
+                this.apiLoaded = true;
+            },
             signIn: function () {
                 this.signedIn = true;
-                this.displayQueryResults();
+            },
+            signOut: function () {
+                this.signedIn = false;
+            },
+            stateChanged: function() {
+                if (this.auto && this.signedIn && this.apiLoaded && this.query != null) {
+                    this.runQuery();
+                }
             },
             /**
-             * Displays the results of big query
+             * Runs a BigQuery query job
              *
-             * @method displayQueryResults
+             * @method runQuery
              */
-            displayQueryResults: function () {
-
-                if (this.signedIn && this.$.bigquery.api) {
-                    var request = this.$.bigquery.api.jobs.query({
-                        'projectId': this.projectId,
-                        'timeoutMs': '30000',
-                        'query': this.query
-                    });
-                    request.execute(function (response) {
-                        console.log(JSON.stringify(response));
-                        for (var i = 0; i < response.result.rows.length; ++i) {
-                            var item = response.result.rows[i];
-                            var title = item.f[0].v;
-                            var revision_count = item.f[1].v;
-                            var r = {title: title, revision_count: revision_count};
-                            this.queryResults.push(r);
-                        }
-                        ;
-                    }.bind(this));
-
-                } else {
-                    console.log("not signedIn or bigquery null");
-                }
+            runQuery: function () {
+                console.log('runQuery called');
+                console.log('query: ' + this.query);
+                var request = this.$.bigquery.api.jobs.query({
+                    'projectId': this.projectId,
+                    'timeoutMs': '30000',
+                    'query': this.query
+                });
+                request.execute(function (response) {
+                    this.response = response.result;
+                    this.fire('query-response', response.result);
+                }.bind(this));
             }
         });
     </script>
