@@ -18,13 +18,12 @@ Element providing a Result Set executed against Google BigQuery
 @status alpha
 @url http://blackhawkwebcomponents.github.io/bigquery-api
 -->
-<polymer-element name="bigquery-api" attributes="projectId query response">
+<polymer-element name="bigquery-api" attributes="projectId query response auto">
     <template>
 
         <google-signin-aware scopes="https://www.googleapis.com/auth/bigquery"
                              on-google-signin-aware-success="{{signIn}}"
                              on-google-signin-aware-signed-out="{{signOut}}">
-
         </google-signin-aware>
 
         <google-api-loader id="bigquery" name="bigquery" version="v2"
@@ -49,8 +48,9 @@ Element providing a Result Set executed against Google BigQuery
              * Setting auto will run the query any time it changes
              * @attribute auto
              * @type boolean
+             * @default false
              */
-            auto: true,
+            auto: false,
             /**
              * A query to execute against Big Query api.
              * @attribute query
@@ -65,9 +65,10 @@ Element providing a Result Set executed against Google BigQuery
              */
             projectId: null,
 
+            /**
             observe: {
                 'query signedIn apiLoaded': 'stateChanged'
-            },
+            },**/
             apiLoad: function () {
                 this.apiLoaded = true;
             },
@@ -96,9 +97,15 @@ Element providing a Result Set executed against Google BigQuery
                     'query': this.query
                 });
                 request.execute(function (response) {
+                    console.log(JSON.stringify(response.result));
                     this.response = response.result;
-                    this.fire('query-response', response.result);
+                    this.processResponse(response.result);
                 }.bind(this));
+            },
+
+            processResponse: function(response) {
+                console.log('in processResponse', JSON.stringify(response, null, 2));
+                this.fire('bigquery-response', {response: response});
             }
         });
     </script>

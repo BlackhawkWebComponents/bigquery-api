@@ -1,0 +1,152 @@
+<link rel="import" href="bigquery-api.html">
+
+<script>
+
+    Platform.mixin(Polymer.getRegisteredPrototype('bigquery-api'), {
+        stateChanged: function() {
+            if (this.auto && this.query != null) {
+                this.runQuery();
+            }
+        },
+        runQuery: function() {
+            console.log('running mock query');
+            this.async(function() {
+                this.response = MockBigQuery.response;
+                this.processResponse(this.response);
+            }, null, MockBigQuery.latency);
+        }
+    });
+
+    // export
+    MockBigQuery = {
+        latency: 1,
+        response: {
+            "kind": "bigquery#queryResponse",
+            "schema": {
+                "fields": [
+                    {
+                        "name": "actor1knowngroupcode",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    },
+                    {
+                        "name": "actor1_knowngroup_count",
+                        "type": "INTEGER",
+                        "mode": "NULLABLE"
+                    }
+                ]
+            },
+            "jobReference": {
+                "projectId": "blackhawk-website",
+                "jobId": "job_Y9eTVO72W7NODqASqWJ7P0s1GXI"
+            },
+            "totalRows": "10",
+            "rows": [
+                {
+                    "f": [
+                        {
+                            "v": "NAT"
+                        },
+                        {
+                            "v": "231"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "TAL"
+                        },
+                        {
+                            "v": "177"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "OPC"
+                        },
+                        {
+                            "v": "150"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "EEC"
+                        },
+                        {
+                            "v": "260"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "ARL"
+                        },
+                        {
+                            "v": "69"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "IOM"
+                        },
+                        {
+                            "v": "35"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "UNO"
+                        },
+                        {
+                            "v": "2690"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "ALQ"
+                        },
+                        {
+                            "v": "3407"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "IRC"
+                        },
+                        {
+                            "v": "319"
+                        }
+                    ]
+                },
+                {
+                    "f": [
+                        {
+                            "v": "HRW"
+                        },
+                        {
+                            "v": "214"
+                        }
+                    ]
+                }
+            ],
+            "totalBytesProcessed": "0",
+            "jobComplete": true,
+            "cacheHit": true
+        }
+    };
+
+</script>
