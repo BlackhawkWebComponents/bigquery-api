@@ -104,7 +104,6 @@ Element providing a Result Set executed against Google BigQuery
             },
 
             processResponse: function(response) {
-                console.log('in processResponse', JSON.stringify(response, null, 2));
                 this.fire('bigquery-response', {response: response});
             }
         });
