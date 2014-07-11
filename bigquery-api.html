@@ -130,7 +130,9 @@ Element providing a Result Set executed against Google BigQuery
                 },
 
                 stateChanged: function() {
+                    //console.log('stateChanged', this.auto, this.authorized, this.query);
                     if (this.auto && this.authorized && this.query != null) {
+                        //console.log('running query');
                         this.runQuery();
                     }
                 },
@@ -153,6 +155,7 @@ Element providing a Result Set executed against Google BigQuery
                 },
 
                 processResponse: function(response) {
+                    //console.log('in processResponse', response);
                     this.fire('bigquery-response', {response: response});
                 }
             });
