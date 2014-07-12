@@ -1,6 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../google-signin/google-signin.html">
 <link rel="import" href="../google-apis/google-client-api.html">
-<link rel="import" href="promise-import.html">
 
 <!--
 Element providing a Result Set executed against Google BigQuery
@@ -18,148 +18,97 @@ Element providing a Result Set executed against Google BigQuery
 @status alpha
 @url http://blackhawkwebcomponents.github.io/bigquery-api
 -->
-<polymer-element name="bigquery-api" attributes="projectId query response auto">
+<polymer-element name="bigquery-api" attributes="projectId query response auto authorized">
     <template>
 
-        <google-api-loader
-                name="bigquery"
-                version="v2">
+        <google-signin-aware scopes="https://www.googleapis.com/auth/bigquery"
+                             on-google-signin-aware-success="{{signIn}}"
+                             on-google-signin-aware-signed-out="{{signOut}}">
+        </google-signin-aware>
+
+        <google-api-loader id="bigquery" name="bigquery" version="v2"
+                           on-google-api-load="{{apiLoad}}">
         </google-api-loader>
 
     </template>
     <script>
-        (function() {
-
+        Polymer('bigquery-api', {
+            created: function () {
+                this.response = {};
+            },
+            authorized: false,
+            apiLoaded: false,
             /**
-             * A promise that is resolved when the underlying client libraries are
-             * loaded. It is rejected if there are any load errors.
+             * A title to be displayed on top of the query results list.
+             * @attribute title
+             * @type string
              */
-            var loadPromise = new Promise(function(resolve, reject) {
-                document.addEventListener('google-api-load', function fn(event) {
-                    var lib = event.detail;
-                    if (lib.name == 'bigquery' && lib.version == 'v2') {
-                        resolve(event.detail);
-                        document.removeEventListener('google-api-load', fn);
-                    }
-                });
-                document.addEventListener('google-api-load-error', function fn(event) {
-                    var lib = event.detail;
-                    if (lib.name == 'bigquery' && lib.version == 'v2') {
-                        reject(event.detail.error);
-                        document.removeEventListener('google-api-load-error', fn);
-                    }
-                });
-            });
+            title: 'Big Query Results',
+            /**
+             * Setting auto will run the query any time it changes
+             * @attribute auto
+             * @type boolean
+             * @default false
+             */
+            auto: false,
+            /**
+             * A query to execute against Big Query api.
+             * @attribute query
+             * @type string
+             * @default null
+             */
+            query: null,
+            /**
+             * Application's projectId for using Big Query API.
+             * @attribute projectId
+             * @type string
+             */
+            projectId: null,
 
-            // Log any errors loading the client library.
-            loadPromise.catch(function(err) {
-                console.error(err.stack || err);
-            })
 
-            Polymer('bigquery-api', {
-                /**
-                 * Setting auto will run the query any time it changes
-                 * @attribute auto
-                 * @type boolean
-                 * @default false
-                 */
-                auto: false,
-                /**
-                 * A query to execute against Big Query api.
-                 * @attribute query
-                 * @type string
-                 * @default null
-                 */
-                query: null,
-                /**
-                 * Application's projectId for using Big Query API.
-                 * @attribute projectId
-                 * @type string
-                 */
-                projectId: null,
-
-                publish: {
-                    /**
-                     * The `authorized` attribute is true when the user has signed-in and
-                     * the underlying bigquery library is fully loaded.
-                     *
-                     * @attribute authorized
-                     * @type boolean
-                     */
-                    authorized: {
-                        value: false,
-                        reflect: true
-                    }
-                },
-
-                created: function() {
-                    this.response = {};
-                    document.addEventListener('google-signin-success', function(event) {
-                        loadPromise
-                                .then(this.userAuthorized.bind(this,event.detail.result));
-                    }.bind(this));
-                    document.addEventListener('google-signed-out', function(event) {
-                        this.userUnauthorized();
-                    }.bind(this));
-                },
-
-                /**
-                 * The `userAuthorized` method will be invoked when the user has
-                 * successfully signed in and all the underlying client libraries
-                 * have been loaded.
-                 *
-                 * @method userAuthorized
-                 * @param {Object} data - The auth data information.
-                 */
-                userAuthorized: function(data) {
-                    this.authorized = true;
-                },
-
-                /**
-                 * The `userUnauthorized` method will be invoked when the user has
-                 * successfully signed out.
-                 *
-                 * @method userUnauthorized
-                 */
-                userUnauthorized: function() {
-                    this.authorized = false;
-                },
-
-                observe: {
-                    'query authorized': 'stateChanged'
-                },
-
-                stateChanged: function() {
-                    //console.log('stateChanged', this.auto, this.authorized, this.query);
-                    if (this.auto && this.authorized && this.query != null) {
-                        //console.log('running query');
-                        this.runQuery();
-                    }
-                },
-                /**
-                 * Runs a BigQuery query job
-                 *
-                 * @method runQuery
-                 */
-                runQuery: function () {
-                    var request = gapi.client.bigquery.jobs.query({
-                        'projectId': this.projectId,
-                        'timeoutMs': '30000',
-                        'query': this.query
-                    });
-                    request.execute(function (response) {
-                        //console.log(JSON.stringify(response.result));
-                        this.response = response.result;
-                        this.processResponse(response.result);
-                    }.bind(this));
-                },
-
-                processResponse: function(response) {
-                    //console.log('in processResponse', response);
-                    this.fire('bigquery-response', {response: response});
+             observe: {
+                'query authorized apiLoaded auto': 'stateChanged'
+            },
+            apiLoad: function () {
+                //console.log('bigquery-api.apiLoad called');
+                this.apiLoaded = true;
+            },
+            signIn: function () {
+                //console.log('bigquery-api.signIn called');
+                this.authorized = true;
+            },
+            signOut: function () {
+                this.authorized = false;
+            },
+            stateChanged: function() {
+                //console.log('bigquery-api.stateChanged called', this.auto, this.authorized, this.apiLoaded, this.query);
+                if (this.auto && this.authorized && this.apiLoaded && this.query != null) {
+                    this.runQuery();
                 }
-            });
-        }());
+            },
+            /**
+             * Runs a BigQuery query job
+             *
+             * @method runQuery
+             */
+            runQuery: function () {
+                //console.log('runQuery called');
+                //console.log('query: ' + this.query);
+                var request = this.$.bigquery.api.jobs.query({
+                    'projectId': this.projectId,
+                    'timeoutMs': '30000',
+                    'query': this.query
+                });
+                request.execute(function (response) {
+                    //console.log(JSON.stringify(response.result));
+                    this.response = response.result;
+                    this.processResponse(response.result);
+                }.bind(this));
+            },
+
+            processResponse: function(response) {
+                this.fire('bigquery-response', {response: response});
+            }
+        });
     </script>
 </polymer-element>
-
